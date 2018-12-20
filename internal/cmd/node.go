@@ -27,6 +27,7 @@ var nodeCmd = &cobra.Command{
 	Short: "Manage processing nodes",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("node called")
+		fmt.Println(Verbose)
 	},
 }
 

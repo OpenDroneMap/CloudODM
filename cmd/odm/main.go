@@ -16,7 +16,9 @@
 package main
 
 import "github.com/OpenDroneMap/CloudODM/internal/cmd"
+import "github.com/OpenDroneMap/CloudODM/internal/config"
 
 func main() {
+	config.Initialize("odm")
 	cmd.Execute()
 }
