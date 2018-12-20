@@ -27,5 +27,6 @@ func Initialize(name string) {
 	}
 
 	cfgPath := filepath.Join(home, "."+name+".json")
-
+	GetPublicNodes()
+	fmt.Println(cfgPath)
 }
