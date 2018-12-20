@@ -18,7 +18,7 @@ type Node struct {
 }
 
 // Initialize the configuration
-func Initialize(name string) {
+func Initialize() {
 	// Find home directory.
 	home, err := homedir.Dir()
 	if err != nil {
@@ -26,7 +26,7 @@ func Initialize(name string) {
 		os.Exit(1)
 	}
 
-	cfgPath := filepath.Join(home, "."+name+".json")
+	cfgPath := filepath.Join(home, ".odm.json")
 	GetPublicNodes()
 	fmt.Println(cfgPath)
 }

@@ -15,10 +15,14 @@
 
 package main
 
-import "github.com/OpenDroneMap/CloudODM/internal/cmd"
-import "github.com/OpenDroneMap/CloudODM/internal/config"
+import (
+	"github.com/OpenDroneMap/CloudODM/internal/cmd"
+)
 
 func main() {
-	config.Initialize("odm")
+	// fmt.Print("Enter password: ")
+	// bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
+	// password := string(bytePassword)
+	// fmt.Printf("Your password is '%s'", password)
 	cmd.Execute()
 }

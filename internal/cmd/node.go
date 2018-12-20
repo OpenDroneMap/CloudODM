@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/OpenDroneMap/CloudODM/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +27,9 @@ var nodeCmd = &cobra.Command{
 	Use:   "node",
 	Short: "Manage processing nodes",
 	Run: func(cmd *cobra.Command, args []string) {
+		config.Initialize()
+
 		fmt.Println("node called")
-		fmt.Println(Verbose)
 	},
 }
 

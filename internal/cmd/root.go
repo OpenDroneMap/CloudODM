@@ -17,19 +17,21 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
+	"github.com/OpenDroneMap/CloudODM/internal/config"
+	"github.com/OpenDroneMap/CloudODM/internal/logger"
 	"github.com/spf13/cobra"
 )
-
-var Verbose bool
 
 var rootCmd = &cobra.Command{
 	Use:   "odm",
 	Short: "A command line tool to process aerial imagery in the cloud",
 
 	Run: func(cmd *cobra.Command, args []string) {
+		config.Initialize()
+
 		fmt.Printf("TODO: %v\n", args)
+
 	},
 
 	TraverseChildren: true,
@@ -41,11 +43,10 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger.Error(err)
 	}
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "show verbose output")
+	rootCmd.PersistentFlags().BoolVarP(&logger.Verbose, "verbose", "v", false, "show verbose output")
 }

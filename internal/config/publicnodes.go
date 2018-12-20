@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+
+	"github.com/OpenDroneMap/CloudODM/internal/logger"
 )
 
 type PublicNode struct {
@@ -14,19 +17,27 @@ type PublicNode struct {
 }
 
 func GetPublicNodes() []PublicNode {
+	logger.Debug("Retrieving public nodes...")
+
 	resp, err := http.Get("https://raw.githubusercontent.com/OpenDroneMap/CloudODM/master/public_nodes.json")
 	if err != nil {
+		logger.Info(err)
 		return nil
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		logger.Info(err)
 		return nil
 	}
 
 	nodes := []PublicNode{}
-	json.Unmarshal(body, &nodes)
+	if err := json.Unmarshal(body, &nodes); err != nil {
+		logger.Info("Invalid JSON content: " + string(body))
+		return nil
+	}
 
-	return nil
+	logger.Info("Loaded " + strconv.Itoa(len(nodes)) + " public nodes")
+	return nodes
 }

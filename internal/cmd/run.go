@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/OpenDroneMap/CloudODM/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,8 @@ var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Process a dataset",
 	Run: func(cmd *cobra.Command, args []string) {
+		config.Initialize()
+
 		fmt.Println("run called")
 		fmt.Println(os.Args[2:])
 		fmt.Println(args)
