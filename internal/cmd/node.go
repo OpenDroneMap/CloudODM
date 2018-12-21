@@ -16,7 +16,7 @@
 package cmd
 
 import (
-	"fmt"
+	"github.com/OpenDroneMap/CloudODM/internal/logger"
 
 	"github.com/OpenDroneMap/CloudODM/internal/config"
 	"github.com/spf13/cobra"
@@ -29,20 +29,45 @@ var nodeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		config.Initialize()
 
-		fmt.Println("node called")
+		for k, n := range config.User.Nodes {
+			if logger.Verbose {
+				logger.Info(k + " - " + n.String())
+			} else {
+				logger.Info(k)
+			}
+		}
+	},
+}
+
+var addCmd = &cobra.Command{
+	Use:   "add <name> <url>",
+	Short: "Add a new processing node",
+	Args:  cobra.ExactValidArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		config.Initialize()
+
+		if err := config.User.AddNode(args[0], args[1]); err != nil {
+			logger.Error(err)
+		}
+	},
+}
+
+var removeCmd = &cobra.Command{
+	Use:     "remove <name>",
+	Short:   "Remove a processing node",
+	Aliases: []string{"delete", "rm", "del"},
+	Args:    cobra.ExactValidArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		config.Initialize()
+
+		if !config.User.RemoveNode(args[0]) {
+			logger.Error("Cannot remove node " + args[0] + " (does it exist?)")
+		}
 	},
 }
 
 func init() {
+	nodeCmd.AddCommand(addCmd)
+	nodeCmd.AddCommand(removeCmd)
 	rootCmd.AddCommand(nodeCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// nodeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// nodeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

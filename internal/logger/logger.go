@@ -8,9 +8,12 @@ import (
 // Verbose output
 var Verbose bool
 
-// Debug message (if verbose is enabled)
+// DebugFlag sets debug output
+var DebugFlag bool
+
+// Debug message (if DebugFlag is enabled)
 func Debug(a ...interface{}) {
-	if Verbose {
+	if DebugFlag {
 		fmt.Println(a...)
 	}
 }

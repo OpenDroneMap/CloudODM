@@ -49,4 +49,5 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&logger.Verbose, "verbose", "v", false, "show verbose output")
+	rootCmd.PersistentFlags().BoolVar(&logger.Verbose, "debug", false, "show debug output")
 }
