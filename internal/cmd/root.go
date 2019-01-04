@@ -17,21 +17,39 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/OpenDroneMap/CloudODM/internal/config"
+	"github.com/OpenDroneMap/CloudODM/internal/fs"
 	"github.com/OpenDroneMap/CloudODM/internal/logger"
+
 	"github.com/spf13/cobra"
 )
 
+var outputPath string
+
 var rootCmd = &cobra.Command{
-	Use:   "odm",
+	Use:   "odm [flags] <images> [<gcp>] [parameters]",
 	Short: "A command line tool to process aerial imagery in the cloud",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		config.Initialize()
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
 
-		fmt.Printf("TODO: %v\n", args)
+		inputFiles, options := parseArgs(args)
 
+		logger.Verbose("Input Files (" + strconv.Itoa(len(inputFiles)) + ")")
+		for _, file := range inputFiles {
+			logger.Debug(" * " + file)
+		}
+
+		logger.Debug("Options: " + strings.Join(options, " "))
 	},
 
 	TraverseChildren: true,
@@ -48,6 +66,36 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&logger.Verbose, "verbose", "v", false, "show verbose output")
-	rootCmd.PersistentFlags().BoolVar(&logger.Verbose, "debug", false, "show debug output")
+	rootCmd.PersistentFlags().BoolVarP(&logger.VerboseFlag, "verbose", "v", false, "show verbose output")
+	rootCmd.PersistentFlags().BoolVarP(&logger.DebugFlag, "debug", "d", false, "show debug output")
+	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "./output", "directory where to store processing results")
+	rootCmd.Flags().SetInterspersed(false)
+}
+
+func parseArgs(args []string) ([]string, []string) {
+	var inputFiles []string
+	var options []string
+
+	for _, arg := range args {
+		if fs.IsDirectory(arg) {
+			// Add everything from directory
+			globPaths, err := filepath.Glob(arg + "/*")
+			if err != nil {
+				logger.Error(err)
+			}
+
+			for _, globPath := range globPaths {
+				if fs.IsFile(globPath) {
+					inputFiles = append(inputFiles, globPath)
+				}
+			}
+		} else if fs.IsFile(arg) {
+			fmt.Printf(arg)
+			inputFiles = append(inputFiles, arg)
+		} else {
+			options = append(options, arg)
+		}
+	}
+
+	return inputFiles, options
 }

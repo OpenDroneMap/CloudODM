@@ -30,7 +30,7 @@ var nodeCmd = &cobra.Command{
 		config.Initialize()
 
 		for k, n := range config.User.Nodes {
-			if logger.Verbose {
+			if logger.VerboseFlag {
 				logger.Info(k + " - " + n.String())
 			} else {
 				logger.Info(k)

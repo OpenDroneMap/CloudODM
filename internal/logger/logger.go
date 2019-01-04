@@ -6,7 +6,7 @@ import (
 )
 
 // Verbose output
-var Verbose bool
+var VerboseFlag bool
 
 // DebugFlag sets debug output
 var DebugFlag bool
@@ -14,6 +14,13 @@ var DebugFlag bool
 // Debug message (if DebugFlag is enabled)
 func Debug(a ...interface{}) {
 	if DebugFlag {
+		fmt.Println(a...)
+	}
+}
+
+// Verbose message (if VerboseFlag is enabled)
+func Verbose(a ...interface{}) {
+	if VerboseFlag || DebugFlag {
 		fmt.Println(a...)
 	}
 }
