@@ -13,12 +13,34 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package cmd
 
 import (
-	"github.com/OpenDroneMap/CloudODM/internal/cmd"
+	"github.com/OpenDroneMap/CloudODM/internal/config"
+	"github.com/OpenDroneMap/CloudODM/internal/logger"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	cmd.Execute()
+var logoutCmd = &cobra.Command{
+	Use:   "logout [--node default]",
+	Short: "Logout of a node",
+	Run: func(cmd *cobra.Command, args []string) {
+		config.Initialize()
+
+		node, err := config.User.GetNode(nodeName)
+		if err != nil {
+			logger.Error(err)
+		}
+
+		node.Token = ""
+		config.User.UpdateNode(nodeName, *node)
+
+		logger.Info("Logged out")
+	},
+}
+
+func init() {
+	logoutCmd.Flags().StringVarP(&nodeName, "node", "n", "default", "Processing node to use")
+
+	rootCmd.AddCommand(logoutCmd)
 }

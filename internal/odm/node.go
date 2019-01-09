@@ -1,14 +1,21 @@
 package odm
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
+	"syscall"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/OpenDroneMap/CloudODM/internal/logger"
 )
@@ -24,6 +31,12 @@ type InfoResponse struct {
 	MaxImages int    `json:"maxImages"`
 
 	Error string `json:"error"`
+}
+
+type AuthInfoResponse struct {
+	Message     string `json:"message"`
+	LoginUrl    string `json:"loginUrl"`
+	RegisterUrl string `json:"registerUrl"`
 }
 
 // Node is a NodeODM processing node
@@ -74,7 +87,29 @@ func (n Node) apiGET(path string) ([]byte, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		logger.Info(err)
+		return nil, err
+	}
+
+	return body, nil
+}
+
+func (n Node) apiPOST(path string, values map[string]string) ([]byte, error) {
+	url := n.URLFor(path)
+	logger.Debug("POST: " + url)
+
+	formData, _ := json.Marshal(values)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(formData))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, errors.New("Server returned status code: " + strconv.Itoa(resp.StatusCode))
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
 	}
 
@@ -106,7 +141,7 @@ func (n Node) Info() (*InfoResponse, error) {
 	return &res, nil
 }
 
-func (n Node) CheckAuthorization(err error) error {
+func (n Node) CheckAuthentication(err error) error {
 	if err != nil {
 		if err == ErrUnauthorized {
 			// Is there a token?
@@ -121,4 +156,76 @@ func (n Node) CheckAuthorization(err error) error {
 	}
 
 	return nil
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
+func (n Node) TryLogin() (token string, err error) {
+	res := AuthInfoResponse{}
+	body, err := n.apiGET("/auth/info")
+	if err != nil {
+		return "", err
+	}
+	if err := json.Unmarshal(body, &res); err != nil {
+		return "", err
+	}
+
+	if res.Message != "" {
+		logger.Info("")
+		logger.Info(res.Message)
+		logger.Info("")
+	}
+
+	if res.LoginUrl != "" {
+		reader := bufio.NewReader(os.Stdin)
+		username := ""
+		for len(username) == 0 {
+			fmt.Print("Enter username: ")
+			username, _ = reader.ReadString('\n')
+			username = strings.TrimSpace(username)
+		}
+
+		password := ""
+		for len(password) == 0 {
+			fmt.Print("Enter password: ")
+			bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
+			password = string(bytePassword)
+		}
+
+		logger.Debug("")
+		logger.Debug("POST: " + res.LoginUrl)
+
+		formData, _ := json.Marshal(map[string]string{"username": username, "password": password})
+		resp, err := http.Post(res.LoginUrl, "application/json", bytes.NewBuffer(formData))
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return "", errors.New("Login URL returned status code: " + strconv.Itoa(resp.StatusCode))
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+
+		res := LoginResponse{}
+		if err := json.Unmarshal(body, &res); err != nil {
+			return "", err
+		}
+
+		if res.Token == "" {
+			return "", errors.New("Login failed")
+		}
+
+		return res.Token, nil
+	}
+
+	// TODO: support for res.RegisterUrl
+
+	return "", errors.New("Cannot login")
 }

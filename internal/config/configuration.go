@@ -89,7 +89,7 @@ func saveToFile(conf Configuration, filePath string) {
 
 	jsonFile.Write(jsonData)
 
-	logger.Debug("Wrote default configuration in " + filePath)
+	logger.Debug("Wrote configuration to " + filePath)
 }
 
 func loadFromFile(filePath string) Configuration {
@@ -154,4 +154,9 @@ func (c Configuration) GetNode(name string) (*odm.Node, error) {
 	}
 
 	return &node, nil
+}
+
+func (c Configuration) UpdateNode(name string, node odm.Node) {
+	c.Nodes[name] = node
+	c.Save()
 }

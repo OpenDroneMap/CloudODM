@@ -13,12 +13,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package cmd
 
 import (
-	"github.com/OpenDroneMap/CloudODM/internal/cmd"
+	"github.com/OpenDroneMap/CloudODM/internal/config"
+	"github.com/OpenDroneMap/CloudODM/internal/logger"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	cmd.Execute()
+var loginCmd = &cobra.Command{
+	Use:   "login [--node default]",
+	Short: "Login with a node",
+	Run: func(cmd *cobra.Command, args []string) {
+		config.Initialize()
+
+		if config.CheckLogin(nodeName) != nil {
+			logger.Info("Logged in")
+		}
+	},
+}
+
+func init() {
+	loginCmd.Flags().StringVarP(&nodeName, "node", "n", "default", "Processing node to use")
+
+	rootCmd.AddCommand(loginCmd)
 }

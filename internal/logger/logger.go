@@ -11,6 +11,9 @@ var VerboseFlag bool
 // DebugFlag sets debug output
 var DebugFlag bool
 
+// QuietFlag supresses all output
+var QuietFlag bool
+
 // Debug message (if DebugFlag is enabled)
 func Debug(a ...interface{}) {
 	if DebugFlag {
@@ -27,11 +30,15 @@ func Verbose(a ...interface{}) {
 
 // Info message
 func Info(a ...interface{}) {
-	fmt.Println(a...)
+	if !QuietFlag {
+		fmt.Println(a...)
+	}
 }
 
 //Error message and exit
 func Error(a ...interface{}) {
-	fmt.Println(a...)
+	if !QuietFlag {
+		fmt.Println(a...)
+	}
 	os.Exit(1)
 }
