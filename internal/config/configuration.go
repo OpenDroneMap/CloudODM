@@ -2,15 +2,18 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"github.com/OpenDroneMap/CloudODM/internal/fs"
 	"github.com/OpenDroneMap/CloudODM/internal/logger"
+	"github.com/OpenDroneMap/CloudODM/internal/odm"
 
 	homedir "github.com/mitchellh/go-homedir"
 )
@@ -21,28 +24,21 @@ var User Configuration
 // NewConfiguration creates a new configuration from a specified file path
 func NewConfiguration(filePath string) Configuration {
 	conf := Configuration{}
-	conf.Nodes = map[string]Node{}
+	conf.Nodes = map[string]odm.Node{}
 	conf.filePath = filePath
 	return conf
 }
 
+// Save saves the configuration to file
 func (c Configuration) Save() {
 	saveToFile(c, c.filePath)
 }
 
+// Configuration is a collection of config values
 type Configuration struct {
-	Nodes map[string]Node `json:"nodes"`
+	Nodes map[string]odm.Node `json:"nodes"`
 
 	filePath string
-}
-
-type Node struct {
-	Url   string `json:"url"`
-	Token string `json:"token"`
-}
-
-func (n Node) String() string {
-	return n.Url
 }
 
 // Initialize the configuration
@@ -117,4 +113,45 @@ func loadFromFile(filePath string) Configuration {
 	}
 
 	return conf
+}
+
+// AddNode adds a new node to the configuration
+func (c Configuration) AddNode(name string, nodeURL string) error {
+	if _, ok := c.Nodes[name]; ok {
+		return errors.New("node" + name + " already exists. Remove it first.")
+	}
+
+	u, err := url.ParseRequestURI(nodeURL)
+	if err != nil {
+		return errors.New(nodeURL + " is not a valid URL. A valid URL looks like: http://hostname:port/?token=optional")
+	}
+
+	c.Nodes[name] = odm.Node{URL: u.Scheme + "://" + u.Host, Token: u.Query().Get("token")}
+	c.Save()
+
+	return nil
+}
+
+// RemoveNode removes a node from the configuration
+func (c Configuration) RemoveNode(name string) bool {
+	_, ok := c.Nodes[name]
+	if ok {
+		delete(c.Nodes, name)
+		c.Save()
+	}
+	return ok
+}
+
+// GetNode gets a Node instance given its name
+func (c Configuration) GetNode(name string) (*odm.Node, error) {
+	if len(c.Nodes) == 0 {
+		return nil, errors.New("No nodes. Add one with ./odm node")
+	}
+
+	node, ok := c.Nodes[name]
+	if !ok {
+		return nil, errors.New("node: " + name + " does not exist")
+	}
+
+	return &node, nil
 }

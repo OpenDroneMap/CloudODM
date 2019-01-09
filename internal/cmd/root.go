@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"mime"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -25,11 +26,13 @@ import (
 	"github.com/OpenDroneMap/CloudODM/internal/config"
 	"github.com/OpenDroneMap/CloudODM/internal/fs"
 	"github.com/OpenDroneMap/CloudODM/internal/logger"
+	"github.com/OpenDroneMap/CloudODM/internal/odm"
 
 	"github.com/spf13/cobra"
 )
 
 var outputPath string
+var nodeName string
 
 var rootCmd = &cobra.Command{
 	Use:   "odm [flags] <images> [<gcp>] [parameters]",
@@ -43,6 +46,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		inputFiles, options := parseArgs(args)
+		inputFiles = filterImagesAndText(inputFiles)
 
 		logger.Verbose("Input Files (" + strconv.Itoa(len(inputFiles)) + ")")
 		for _, file := range inputFiles {
@@ -50,6 +54,27 @@ var rootCmd = &cobra.Command{
 		}
 
 		logger.Debug("Options: " + strings.Join(options, " "))
+
+		node, err := config.User.GetNode(nodeName)
+		if err != nil {
+			logger.Error(err)
+		}
+
+		info, err := node.Info()
+		err = node.CheckAuthorization(err)
+		if err != nil {
+			if err == odm.ErrAuthRequired {
+				logger.Debug("AUTH")
+			}
+			logger.Error(err)
+		}
+
+		// Check max images
+		if len(inputFiles) > info.MaxImages {
+			logger.Error("Cannot process", len(inputFiles), "files with this node, the node has a limit of", info.MaxImages)
+		}
+
+		logger.Debug("NodeODM version: " + info.Version)
 	},
 
 	TraverseChildren: true,
@@ -69,6 +94,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&logger.VerboseFlag, "verbose", "v", false, "show verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&logger.DebugFlag, "debug", "d", false, "show debug output")
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "./output", "directory where to store processing results")
+	rootCmd.Flags().StringVarP(&nodeName, "node", "n", "default", "Processing node to use")
 	rootCmd.Flags().SetInterspersed(false)
 }
 
@@ -98,4 +124,17 @@ func parseArgs(args []string) ([]string, []string) {
 	}
 
 	return inputFiles, options
+}
+
+func filterImagesAndText(files []string) []string {
+	var result []string
+
+	for _, file := range files {
+		mimeType := mime.TypeByExtension(filepath.Ext(file))
+		if strings.HasPrefix(mimeType, "image") || strings.HasPrefix(mimeType, "text") {
+			result = append(result, file)
+		}
+	}
+
+	return result
 }

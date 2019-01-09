@@ -27,7 +27,7 @@ func TestNodes(t *testing.T) {
 	if value.Token != "123" {
 		t.Error("Token should be 123")
 	}
-	if value.Url != "https://localhost:8080" {
+	if value.URL != "https://localhost:8080" {
 		t.Error("URL is not properly set")
 	}
 
@@ -45,5 +45,13 @@ func TestNodes(t *testing.T) {
 
 	if c.RemoveNode("test1") {
 		t.Error("Function should have returned false (already deleted)")
+	}
+
+	if _, err := c.GetNode("default"); err != nil {
+		t.Error("Cannot get default node")
+	}
+
+	if _, err := c.GetNode("nonexistant"); err == nil {
+		t.Error("Can get nonexistant node")
 	}
 }

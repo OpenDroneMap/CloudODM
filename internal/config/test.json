@@ -1,0 +1,8 @@
+{
+ "nodes": {
+  "default": {
+   "url": "http://localhost",
+   "token": ""
+  }
+ }
+}
