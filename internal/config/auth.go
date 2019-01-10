@@ -9,7 +9,7 @@ import (
 // if it does, it attempts to login
 // it it doesn't, returns node.Info()
 // on error, it prints a message and exits
-func CheckLogin(nodeName string) *odm.InfoResponse {
+func CheckLogin(nodeName string, username string, password string) *odm.InfoResponse {
 	node, err := User.GetNode(nodeName)
 	if err != nil {
 		logger.Error(err)
@@ -19,7 +19,7 @@ func CheckLogin(nodeName string) *odm.InfoResponse {
 	err = node.CheckAuthentication(err)
 	if err != nil {
 		if err == odm.ErrAuthRequired {
-			token, err := node.TryLogin()
+			token, err := node.TryLogin(username, password)
 			if err != nil {
 				logger.Error(err)
 			}

@@ -1,22 +1,18 @@
 package odm
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
-	"os"
+	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 
-	"golang.org/x/crypto/ssh/terminal"
-
+	odmio "github.com/OpenDroneMap/CloudODM/internal/io"
 	"github.com/OpenDroneMap/CloudODM/internal/logger"
 )
 
@@ -31,6 +27,14 @@ type InfoResponse struct {
 	MaxImages int    `json:"maxImages"`
 
 	Error string `json:"error"`
+}
+
+type OptionResponse struct {
+	Domain interface{} `json:"domain"`
+	Help   string      `json:"help"`
+	Name   string      `json:"name"`
+	Type   string      `json:"type"`
+	Value  string      `json:"value"`
 }
 
 type AuthInfoResponse struct {
@@ -141,6 +145,24 @@ func (n Node) Info() (*InfoResponse, error) {
 	return &res, nil
 }
 
+// Options GET: /options
+func (n Node) Options() ([]OptionResponse, error) {
+	options := []OptionResponse{}
+	body, err := n.apiGET("/options")
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(body, &options); err != nil {
+		return nil, err
+	}
+
+	sort.Slice(options, func(i, j int) bool {
+		return options[i].Name < options[j].Name
+	})
+
+	return options, nil
+}
+
 func (n Node) CheckAuthentication(err error) error {
 	if err != nil {
 		if err == ErrUnauthorized {
@@ -162,7 +184,7 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
-func (n Node) TryLogin() (token string, err error) {
+func (n Node) TryLogin(username string, password string) (token string, err error) {
 	res := AuthInfoResponse{}
 	body, err := n.apiGET("/auth/info")
 	if err != nil {
@@ -179,19 +201,8 @@ func (n Node) TryLogin() (token string, err error) {
 	}
 
 	if res.LoginUrl != "" {
-		reader := bufio.NewReader(os.Stdin)
-		username := ""
-		for len(username) == 0 {
-			fmt.Print("Enter username: ")
-			username, _ = reader.ReadString('\n')
-			username = strings.TrimSpace(username)
-		}
-
-		password := ""
-		for len(password) == 0 {
-			fmt.Print("Enter password: ")
-			bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
-			password = string(bytePassword)
+		if username == "" && password == "" {
+			username, password = odmio.GetUsernamePassword()
 		}
 
 		logger.Debug("")

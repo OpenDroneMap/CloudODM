@@ -38,6 +38,8 @@ func (c Configuration) Save() {
 type Configuration struct {
 	Nodes map[string]odm.Node `json:"nodes"`
 
+	Tasks []odm.Task `json:"tasks"`
+
 	filePath string
 }
 

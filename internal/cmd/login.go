@@ -21,13 +21,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var username string
+var password string
+
 var loginCmd = &cobra.Command{
 	Use:   "login [--node default]",
 	Short: "Login with a node",
 	Run: func(cmd *cobra.Command, args []string) {
 		config.Initialize()
 
-		if config.CheckLogin(nodeName) != nil {
+		if config.CheckLogin(nodeName, username, password) != nil {
 			logger.Info("Logged in")
 		}
 	},
@@ -35,6 +38,8 @@ var loginCmd = &cobra.Command{
 
 func init() {
 	loginCmd.Flags().StringVarP(&nodeName, "node", "n", "default", "Processing node to use")
+	loginCmd.Flags().StringVar(&username, "username", "", "Username")
+	loginCmd.Flags().StringVar(&password, "password", "", "Password")
 
 	rootCmd.AddCommand(loginCmd)
 }

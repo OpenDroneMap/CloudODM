@@ -26,6 +26,7 @@ import (
 	"github.com/OpenDroneMap/CloudODM/internal/config"
 	"github.com/OpenDroneMap/CloudODM/internal/fs"
 	"github.com/OpenDroneMap/CloudODM/internal/logger"
+	"github.com/OpenDroneMap/CloudODM/internal/odm"
 
 	"github.com/spf13/cobra"
 )
@@ -34,7 +35,7 @@ var outputPath string
 var nodeName string
 
 var rootCmd = &cobra.Command{
-	Use:   "odm [flags] <images> [<gcp>] [parameters]",
+	Use:   "odm [flags] <images> [<gcp>] [args]",
 	Short: "A command line tool to process aerial imagery in the cloud",
 
 	Run: func(cmd *cobra.Command, args []string) {
@@ -54,7 +55,7 @@ var rootCmd = &cobra.Command{
 
 		logger.Debug("Options: " + strings.Join(options, " "))
 
-		info := config.CheckLogin(nodeName)
+		info := config.CheckLogin(nodeName, "", "")
 
 		// Check max images
 		if len(inputFiles) > info.MaxImages {
@@ -62,6 +63,18 @@ var rootCmd = &cobra.Command{
 		}
 
 		logger.Debug("NodeODM version: " + info.Version)
+
+		node, err := config.User.GetNode(nodeName)
+		if err != nil {
+			logger.Error(err)
+		}
+
+		nodeOptions, err := node.Options()
+		if err != nil {
+			logger.Error(err)
+		}
+
+		odm.Run(inputFiles, parseOptions(options, nodeOptions), *node)
 	},
 
 	TraverseChildren: true,
@@ -122,6 +135,60 @@ func filterImagesAndText(files []string) []string {
 		mimeType := mime.TypeByExtension(filepath.Ext(file))
 		if strings.HasPrefix(mimeType, "image") || strings.HasPrefix(mimeType, "text") {
 			result = append(result, file)
+		}
+	}
+
+	return result
+}
+
+func invalidArg(arg string) {
+	logger.Error("Invalid argument " + arg + ". See ./odm args for a list of valid arguments.")
+}
+
+func parseOptions(options []string, nodeOptions []odm.OptionResponse) []odm.Option {
+	result := []odm.Option{}
+
+	for i := 0; i < len(options); i++ {
+		o := options[i]
+
+		if strings.HasPrefix(o, "--") || strings.HasPrefix(o, "-") {
+			currentOption := odm.Option{}
+
+			// Key
+			o = strings.TrimPrefix(o, "--")
+			o = strings.TrimPrefix(o, "-")
+
+			found := false
+			optType := "string"
+			for _, no := range nodeOptions {
+				if no.Name == o {
+					found = true
+					optType = no.Type
+					break
+				}
+			}
+
+			if !found {
+				invalidArg(o)
+			}
+
+			// TODO: domain checks
+
+			currentOption.Name = o
+			if optType == "bool" {
+				currentOption.Value = "true"
+			} else {
+				if i < len(options)-1 {
+					currentOption.Value = options[i+1]
+					i++
+				} else {
+					invalidArg(o)
+				}
+			}
+
+			result = append(result, currentOption)
+		} else {
+			invalidArg(o)
 		}
 	}
 
