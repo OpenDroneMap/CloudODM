@@ -2,9 +2,9 @@
 project_name: odm
 builds:
   -
-    main: ./cmd/odm/main.go
-  - env:
-    - CGO_ENABLED=0
+    main: ./cmd/main.go
+    env:
+      - CGO_ENABLED=0
 archive:
   format_overrides:
     - goos: windows
