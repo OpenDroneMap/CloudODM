@@ -255,7 +255,7 @@ func (n Node) TaskDownload(uuid string, asset string, outputFile string) error {
 	if showProgress {
 		bar = pb.New64(totalBytes).SetUnits(pb.U_BYTES).SetRefreshRate(time.Millisecond * 10)
 		bar.Start()
-		bar.Prefix("[" + out.Name() + "]")
+		bar.Prefix("[" + asset + "]")
 	}
 
 	writer := io.MultiWriter(out, bar)
