@@ -35,9 +35,9 @@ var nodeName string
 var force bool
 
 var rootCmd = &cobra.Command{
-	Use:   "odm [flags] <images> [<gcp>] [args]",
-	Short: "A command line tool to process aerial imagery in the cloud",
-
+	Use:     "odm [flags] <images> [<gcp>] [args]",
+	Short:   "A command line tool to process aerial imagery in the cloud",
+	Version: "1.0.0",
 	Run: func(cmd *cobra.Command, args []string) {
 		config.Initialize()
 		if len(args) == 0 {
@@ -115,6 +115,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&force, "force", "f", false, "replace the contents of the output directory if it already exists")
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "./output", "directory where to store processing results")
 	rootCmd.Flags().StringVarP(&nodeName, "node", "n", "default", "Processing node to use")
+
 	rootCmd.Flags().SetInterspersed(false)
 }
 
