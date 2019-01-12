@@ -1,7 +1,8 @@
 # Check the documentation at http://goreleaser.com
 project_name: odm
 builds:
-  main: ./cmd/odm/main.go
+  -
+    main: ./cmd/odm/main.go
   - env:
     - CGO_ENABLED=0
 archive:
