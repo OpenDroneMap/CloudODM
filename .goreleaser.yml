@@ -1,10 +1,15 @@
 # Check the documentation at http://goreleaser.com
-project_name: odm
+project_name: CloudODM
 builds:
   -
-    main: ./cmd/main.go
+    main: ./cmd/odm/main.go
+    binary: odm
     env:
       - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
 archive:
   format_overrides:
     - goos: windows
@@ -18,7 +23,7 @@ archive:
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: "{{ .Tag }}"
 changelog:
   sort: asc
   filters:

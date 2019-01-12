@@ -205,7 +205,7 @@ func Run(files []string, options []Option, node Node, outputPath string) {
 	}
 
 	if status == STATUS_CANCELED || status == STATUS_FAILED {
-		logger.Error("Task failed or canceled")
+		os.Exit(1)
 	}
 
 	if status == STATUS_COMPLETED {
@@ -241,6 +241,6 @@ func Run(files []string, options []Option, node Node, outputPath string) {
 			logger.Info(err)
 		}
 
-		logger.Info("Done!")
+		logger.Info("Done! Results saved in " + outputPath)
 	}
 }
