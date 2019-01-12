@@ -13,33 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-package io
+package odm
 
-import (
-	"bufio"
-	"fmt"
-	"os"
-	"strings"
-	"syscall"
-
-	"golang.org/x/crypto/ssh/terminal"
+const (
+	STATUS_QUEUED    int = 10
+	STATUS_RUNNING   int = 20
+	STATUS_FAILED    int = 30
+	STATUS_COMPLETED int = 40
+	STATUS_CANCELED  int = 50
 )
-
-func GetUsernamePassword() (username string, password string) {
-	reader := bufio.NewReader(os.Stdin)
-	username = ""
-	for len(username) == 0 {
-		fmt.Print("Enter username: ")
-		username, _ = reader.ReadString('\n')
-		username = strings.TrimSpace(username)
-	}
-
-	password = ""
-	for len(password) == 0 {
-		fmt.Print("Enter password: ")
-		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
-		password = string(bytePassword)
-	}
-
-	return username, password
-}

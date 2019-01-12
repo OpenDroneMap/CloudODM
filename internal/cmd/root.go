@@ -16,7 +16,6 @@
 package cmd
 
 import (
-	"fmt"
 	"mime"
 	"os"
 	"path/filepath"
@@ -33,6 +32,7 @@ import (
 
 var outputPath string
 var nodeName string
+var force bool
 
 var rootCmd = &cobra.Command{
 	Use:   "odm [flags] <images> [<gcp>] [args]",
@@ -43,6 +43,15 @@ var rootCmd = &cobra.Command{
 		if len(args) == 0 {
 			cmd.Help()
 			os.Exit(0)
+		}
+
+		// Check output directory
+		filesCount, err := fs.DirectoryFilesCount(outputPath)
+		if err != nil {
+			logger.Error(err)
+		}
+		if filesCount > 0 && !force {
+			logger.Error(outputPath + " already exists (pass --force to override directory contents)")
 		}
 
 		inputFiles, options := parseArgs(args)
@@ -74,7 +83,15 @@ var rootCmd = &cobra.Command{
 			logger.Error(err)
 		}
 
-		odm.Run(inputFiles, parseOptions(options, nodeOptions), *node)
+		// Create output directory
+		if !fs.IsDirectory(outputPath) {
+			err = os.MkdirAll(outputPath, 0755)
+			if err != nil {
+				logger.Error(err)
+			}
+		}
+
+		odm.Run(inputFiles, parseOptions(options, nodeOptions), *node, outputPath)
 	},
 
 	TraverseChildren: true,
@@ -95,6 +112,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&logger.DebugFlag, "debug", "d", false, "show debug output")
 	rootCmd.PersistentFlags().BoolVarP(&logger.QuietFlag, "quiet", "q", false, "suppress output")
 
+	rootCmd.Flags().BoolVarP(&force, "force", "f", false, "replace the contents of the output directory if it already exists")
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "./output", "directory where to store processing results")
 	rootCmd.Flags().StringVarP(&nodeName, "node", "n", "default", "Processing node to use")
 	rootCmd.Flags().SetInterspersed(false)
@@ -118,7 +136,6 @@ func parseArgs(args []string) ([]string, []string) {
 				}
 			}
 		} else if fs.IsFile(arg) {
-			fmt.Printf(arg)
 			inputFiles = append(inputFiles, arg)
 		} else {
 			options = append(options, arg)
