@@ -50,9 +50,13 @@ go run github.com/OpenDroneMap/CloudODM/cmd/odm --help
 
 ## Building From Sources
 
-We use [Goreleaser](https://goreleaser.com/) to build and deploy CloudODM. See [https://goreleaser.com/](Goreleaser's documentation) for installation and deployment instructions. You should just need to install the `goreleaser` application and then run:
+We use [Goreleaser](https://goreleaser.com/) to build and deploy CloudODM. See Goreleaser's  [https://goreleaser.com/](documentation) for installation and deployment instructions. You should just need to install the `goreleaser` application and then run:
 
 `goreleaser release --skip-publish --snapshot`
+
+## Reporting Issues / Feature Requests / Feedback
+
+Please open an [issue](https://github.com/OpenDroneMap/CloudODM).
 
 ## Support the Project
 
