@@ -23,7 +23,7 @@ See `odm --help` for more options.
 
 By default CloudODM will randomly choose a default node from the list of [publicly available nodes](https://github.com/OpenDroneMap/CloudODM/blob/master/public_nodes.json). If you are running your own processing node via [NodeODM](https://github.com/OpenDroneMap/NodeODM) you can add a node by running the following:
 
-`odm node add mynode http://nodeaddress:nodeport`
+`odm node add mynode http://address:port`
 
 Then run odm as following:
 
@@ -35,7 +35,7 @@ If no node is specified, the `default` node is selected. To see a list of nodes 
 
 For more information run `odm node --help`.
 
-If you are interested in adding your node to the list of [public nodes]((https://github.com/OpenDroneMap/CloudODM/blob/master/public_nodes.json) please open an [issue](https://github.com/OpenDroneMap/CloudODM/issues).
+If you are interested in adding your node to the list of [public nodes](https://github.com/OpenDroneMap/CloudODM/blob/master/public_nodes.json) please open an [issue](https://github.com/OpenDroneMap/CloudODM/issues).
 
 ## Running From Sources
 
