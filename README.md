@@ -19,6 +19,10 @@ This command will process all the images in the directory `c:\path\to\images` an
 
 See `odm --help` for more options.
 
+## Using GCPs
+
+To include a GCP for additional georeferencing accuracy, simply create a .txt file according to the [Ground Control Points format specification](https://docs.opendronemap.org/using.html#ground-control-points) and place it along with the images.
+
 ## Processing Node Management
 
 By default CloudODM will randomly choose a default node from the list of [publicly available nodes](https://github.com/OpenDroneMap/CloudODM/blob/master/public_nodes.json). If you are running your own processing node via [NodeODM](https://github.com/OpenDroneMap/NodeODM) you can add a node by running the following:
