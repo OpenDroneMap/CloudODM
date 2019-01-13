@@ -44,7 +44,7 @@ If you are interested in adding your node to the list of [public nodes](https://
 ## Running From Sources
 
 ```bash
-go get -u https://github.com/OpenDroneMap/CloudODM`
+go get -u github.com/OpenDroneMap/CloudODM
 go run github.com/OpenDroneMap/CloudODM/cmd/odm --help
 ```
 
