@@ -17,6 +17,7 @@ package odm
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -34,44 +35,41 @@ import (
 	"github.com/cheggaaa/pb"
 )
 
-type TaskNewResponse struct {
-	UUID  string `json:"uuid"`
-	Error string `json:"error"`
+type fileUpload struct {
+	filename string
+	retries  int
 }
 
-// Run processes a dataset
-func Run(files []string, options []Option, node Node, outputPath string) {
-	var err error
-	var bar *pb.ProgressBar
+type fileUploadResult struct {
+	filename string
+	err      error
+	retries  int
+}
 
+func singleUpload(node Node, files []string, jsonOptions []byte) TaskNewResponse {
 	var f *os.File
 	var fi os.FileInfo
-
-	var totalBytes int64
+	var err error
+	var bar *pb.ProgressBar
+	var res TaskNewResponse
 
 	showProgress := !logger.QuietFlag
 
-	// Calculate total upload size
-	for _, file := range files {
-		if fi, err = os.Stat(file); err != nil {
-			logger.Error(err)
-		}
-		totalBytes += fi.Size()
-		f.Close()
-	}
-
 	if showProgress {
+		var totalBytes int64
+
+		// Calculate total upload size
+		for _, file := range files {
+			if fi, err = os.Stat(file); err != nil {
+				logger.Error(err)
+			}
+			totalBytes += fi.Size()
+		}
+
 		bar = pb.New64(totalBytes).SetUnits(pb.U_BYTES).SetRefreshRate(time.Millisecond * 10)
 		bar.Start()
 	}
 
-	// Convert options to JSON
-	jsonOptions, err := json.Marshal(options)
-	if err != nil {
-		logger.Error(err)
-	}
-
-	// Setup pipe
 	r, w := io.Pipe()
 	mpw := multipart.NewWriter(w)
 
@@ -122,18 +120,128 @@ func Run(files []string, options []Option, node Node, outputPath string) {
 		logger.Error(err)
 	}
 
-	res := TaskNewResponse{}
+	if showProgress {
+		bar.Finish()
+	}
+
 	if err := json.Unmarshal(body, &res); err != nil {
 		logger.Error(err)
+	}
+
+	return res
+}
+
+func uploadWorker(id int, node Node, uuid string, barPool *pb.Pool, filesToProcess <-chan fileUpload, results chan<- fileUploadResult) {
+	var bar *pb.ProgressBar
+
+	if barPool != nil {
+		bar = pb.New64(0).SetUnits(pb.U_BYTES).SetRefreshRate(time.Millisecond * 10)
+		barPool.Add(bar)
+	}
+
+	for f := range filesToProcess {
+		results <- fileUploadResult{f.filename, node.TaskNewUpload(f.filename, uuid, bar), f.retries}
+	}
+}
+
+func chunkedUpload(node Node, files []string, jsonOptions []byte, parallelUploads int) TaskNewResponse {
+	var err error
+	var barPool *pb.Pool
+	var mainBar *pb.ProgressBar
+	var res TaskNewResponse
+
+	showProgress := !logger.QuietFlag
+
+	// Invoke /task/new/init
+	res = node.TaskNewInit(jsonOptions)
+	if res.Error != "" {
+		logger.Error(err)
+	}
+
+	if showProgress {
+		barPool = pb.NewPool()
+	}
+
+	// Create workers
+	filesToProcess := make(chan fileUpload, len(files))
+	results := make(chan fileUploadResult, len(files))
+
+	for w := 1; w <= parallelUploads; w++ {
+		go uploadWorker(w, node, res.UUID, barPool, filesToProcess, results)
+	}
+
+	if barPool != nil {
+		barPool.Start()
+
+		mainBar = pb.New(len(files)).SetUnits(pb.U_NO).SetRefreshRate(time.Millisecond * 10)
+		mainBar.Format("[\x00#\x00\x00_\x00]")
+		mainBar.Prefix("Files Uploaded:")
+		mainBar.Start()
+	}
+
+	// Fill queue
+	for _, file := range files {
+		filesToProcess <- fileUpload{file, 0}
+	}
+
+	// Wait
+	MaxRetries := 10
+	filesLeft := len(files)
+	for filesLeft > 0 {
+		fur := <-results
+
+		if fur.err != nil {
+			if fur.retries < MaxRetries {
+				// Retry
+				filesToProcess <- fileUpload{fur.filename, fur.retries + 1}
+			} else {
+				logger.Error(errors.New("Cannot upload " + fur.filename + ", exceeded max retries (" + string(MaxRetries) + ")"))
+			}
+		} else {
+			filesLeft--
+			if mainBar != nil {
+				mainBar.Set(len(files) - filesLeft)
+			}
+		}
+	}
+	close(filesToProcess)
+
+	if barPool != nil {
+		barPool.Stop()
+	}
+	if mainBar != nil {
+		mainBar.Finish()
+	}
+
+	// Commit
+	res = node.TaskNewCommit(res.UUID)
+	if res.Error != "" {
+		logger.Error(res.Error)
+	}
+
+	return res
+}
+
+// Run processes a dataset
+func Run(files []string, options []Option, node Node, outputPath string, parallelConnections int) {
+	var err error
+
+	// Convert options to JSON
+	jsonOptions, err := json.Marshal(options)
+	if err != nil {
+		logger.Error(err)
+	}
+
+	var res TaskNewResponse
+	if parallelConnections <= 1 {
+		res = singleUpload(node, files, jsonOptions)
+	} else {
+		res = chunkedUpload(node, files, jsonOptions, parallelConnections)
 	}
 
 	// Handle error response from API
 	if res.Error != "" {
 		logger.Error(res.Error)
-	}
-
-	if showProgress {
-		bar.Finish()
 	}
 
 	// We should have a UUID

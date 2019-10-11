@@ -22,6 +22,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -74,6 +75,11 @@ type TaskInfoResponse struct {
 type ApiActionResponse struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error"`
+}
+
+type TaskNewResponse struct {
+	UUID  string `json:"uuid"`
+	Error string `json:"error"`
 }
 
 // Node is a NodeODM processing node
@@ -258,7 +264,12 @@ func (n Node) TaskDownload(uuid string, asset string, outputFile string) error {
 		bar.Prefix("[" + asset + "]")
 	}
 
-	writer := io.MultiWriter(out, bar)
+	var writer io.Writer
+	if bar != nil {
+		writer = io.MultiWriter(out, bar)
+	} else {
+		writer = out
+	}
 
 	written, err := io.Copy(writer, resp.Body)
 	if written == 0 {
@@ -289,6 +300,120 @@ func (n Node) TaskCancel(uuid string) error {
 	}
 
 	return nil
+}
+
+// TaskNewInit POST: /task/new/init
+func (n Node) TaskNewInit(jsonOptions []byte) TaskNewResponse {
+	var err error
+	reqBody := &bytes.Buffer{}
+	mpw := multipart.NewWriter(reqBody)
+	mpw.WriteField("skipPostProcessing", "true")
+	mpw.WriteField("options", string(jsonOptions))
+	if err = mpw.Close(); err != nil {
+		return TaskNewResponse{"", err.Error()}
+	}
+
+	resp, err := http.Post(n.URLFor("/task/new/init"), mpw.FormDataContentType(), reqBody)
+	defer resp.Body.Close()
+	if err != nil {
+		return TaskNewResponse{"", err.Error()}
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return TaskNewResponse{"", err.Error()}
+	}
+
+	var res TaskNewResponse
+	if err := json.Unmarshal(body, &res); err != nil {
+		return TaskNewResponse{"", err.Error()}
+	}
+
+	return res
+}
+
+// TaskNewUpload POST: /task/new/upload/{uuid}
+func (n Node) TaskNewUpload(file string, uuid string, bar *pb.ProgressBar) error {
+	var f *os.File
+	var fi os.FileInfo
+	var err error
+	r, w := io.Pipe()
+	mpw := multipart.NewWriter(w)
+
+	go func() {
+		var part io.Writer
+		defer w.Close()
+		defer f.Close()
+
+		if f, err = os.Open(file); err != nil {
+			return
+		}
+		if fi, err = f.Stat(); err != nil {
+			return
+		}
+
+		if bar != nil {
+			bar.SetTotal64(fi.Size())
+			bar.Set64(0)
+			bar.Prefix("[" + fi.Name() + "]")
+		}
+
+		if part, err = mpw.CreateFormFile("images", fi.Name()); err != nil {
+			return
+		}
+
+		if bar != nil {
+			part = io.MultiWriter(part, bar)
+		}
+
+		if _, err = io.Copy(part, f); err != nil {
+			return
+		}
+
+		if err = mpw.Close(); err != nil {
+			return
+		}
+	}()
+
+	resp, err := http.Post(n.URLFor("/task/new/upload/"+uuid), mpw.FormDataContentType(), r)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var res ApiActionResponse
+	if err := json.Unmarshal(body, &res); err != nil {
+		return err
+	}
+
+	if res.Error != "" {
+		return errors.New(res.Error)
+	}
+
+	if !res.Success {
+		return errors.New("Cannot complete upload. /task/new/upload failed with success: false")
+	}
+
+	return nil
+}
+
+// TaskNewCommit POST: /task/new/commit/{uuid}
+func (n Node) TaskNewCommit(uuid string) TaskNewResponse {
+	var res TaskNewResponse
+
+	body, err := n.apiPOST("/task/new/commit/"+uuid, map[string]string{})
+	if err != nil {
+		return TaskNewResponse{"", err.Error()}
+	}
+	if err := json.Unmarshal(body, &res); err != nil {
+		return TaskNewResponse{"", err.Error()}
+	}
+
+	return res
 }
 
 func (n Node) CheckAuthentication(err error) error {

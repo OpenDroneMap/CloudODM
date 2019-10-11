@@ -33,6 +33,7 @@ import (
 var outputPath string
 var nodeName string
 var force bool
+var parallelConnections int
 
 var rootCmd = &cobra.Command{
 	Use:     "odm [flags] <images> [<gcp>] [args]",
@@ -91,7 +92,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		odm.Run(inputFiles, parseOptions(options, nodeOptions), *node, outputPath)
+		odm.Run(inputFiles, parseOptions(options, nodeOptions), *node, outputPath, parallelConnections)
 	},
 
 	TraverseChildren: true,
@@ -115,6 +116,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&force, "force", "f", false, "replace the contents of the output directory if it already exists")
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "./output", "directory where to store processing results")
 	rootCmd.Flags().StringVarP(&nodeName, "node", "n", "default", "Processing node to use")
+	rootCmd.Flags().IntVarP(&parallelConnections, "parallel-connections", "p", 5, "Parallel upload connections. Set to 1 to disable parallel uploads")
 
 	rootCmd.Flags().SetInterspersed(false)
 }
