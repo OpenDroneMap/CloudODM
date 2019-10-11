@@ -18,7 +18,6 @@ package odm
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -141,7 +140,7 @@ func uploadWorker(id int, node Node, uuid string, barPool *pb.Pool, filesToProce
 	}
 
 	for f := range filesToProcess {
-		results <- fileUploadResult{f.filename, node.TaskNewUpload(f.filename, uuid, bar), f.retries + 1}
+		results <- fileUploadResult{f.filename, node.TaskNewUpload(f.filename, uuid, bar), f.retries}
 	}
 }
 
@@ -194,20 +193,23 @@ func chunkedUpload(node Node, files []string, jsonOptions []byte, parallelUpload
 		if fur.err != nil {
 			if fur.retries < MaxRetries {
 				// Retry
-				fmt.Println("RETRY: " + fur.filename + " " + string(fur.retries))
 				filesToProcess <- fileUpload{fur.filename, fur.retries + 1}
 			} else {
 				logger.Error(errors.New("Cannot upload " + fur.filename + ", exceeded max retries (" + string(MaxRetries) + ")"))
 			}
 		} else {
 			filesLeft--
-			mainBar.Set(len(files) - filesLeft)
+			if mainBar != nil {
+				mainBar.Set(len(files) - filesLeft)
+			}
 		}
 	}
 	close(filesToProcess)
 
 	if barPool != nil {
 		barPool.Stop()
+	}
+	if mainBar != nil {
 		mainBar.Finish()
 	}
 

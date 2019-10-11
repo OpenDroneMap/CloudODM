@@ -264,7 +264,12 @@ func (n Node) TaskDownload(uuid string, asset string, outputFile string) error {
 		bar.Prefix("[" + asset + "]")
 	}
 
-	writer := io.MultiWriter(out, bar)
+	var writer io.Writer
+	if bar != nil {
+		writer = io.MultiWriter(out, bar)
+	} else {
+		writer = out
+	}
 
 	written, err := io.Copy(writer, resp.Body)
 	if written == 0 {
