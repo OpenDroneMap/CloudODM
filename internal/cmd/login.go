@@ -28,9 +28,9 @@ var loginCmd = &cobra.Command{
 	Use:   "login [--node default]",
 	Short: "Login with a node",
 	Run: func(cmd *cobra.Command, args []string) {
-		config.Initialize()
+		user := config.Initialize()
 
-		if config.CheckLogin(nodeName, username, password) != nil {
+		if user.CheckLogin(nodeName, username, password) != nil {
 			logger.Info("Logged in")
 		}
 	},

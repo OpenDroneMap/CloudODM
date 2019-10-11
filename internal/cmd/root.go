@@ -37,9 +37,9 @@ var force bool
 var rootCmd = &cobra.Command{
 	Use:     "odm [flags] <images> [<gcp>] [args]",
 	Short:   "A command line tool to process aerial imagery in the cloud",
-	Version: "1.0.0",
+	Version: "1.1.0",
 	Run: func(cmd *cobra.Command, args []string) {
-		config.Initialize()
+		user := config.Initialize()
 		if len(args) == 0 {
 			cmd.Help()
 			os.Exit(0)
@@ -64,7 +64,7 @@ var rootCmd = &cobra.Command{
 
 		logger.Debug("Options: " + strings.Join(options, " "))
 
-		info := config.CheckLogin(nodeName, "", "")
+		info := user.CheckLogin(nodeName, "", "")
 
 		// Check max images
 		if len(inputFiles) > info.MaxImages {
@@ -73,7 +73,7 @@ var rootCmd = &cobra.Command{
 
 		logger.Debug("NodeODM version: " + info.Version)
 
-		node, err := config.User.GetNode(nodeName)
+		node, err := user.GetNode(nodeName)
 		if err != nil {
 			logger.Error(err)
 		}

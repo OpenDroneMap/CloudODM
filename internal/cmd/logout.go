@@ -25,15 +25,15 @@ var logoutCmd = &cobra.Command{
 	Use:   "logout [--node default]",
 	Short: "Logout of a node",
 	Run: func(cmd *cobra.Command, args []string) {
-		config.Initialize()
+		user := config.Initialize()
 
-		node, err := config.User.GetNode(nodeName)
+		node, err := user.GetNode(nodeName)
 		if err != nil {
 			logger.Error(err)
 		}
 
 		node.Token = ""
-		config.User.UpdateNode(nodeName, *node)
+		user.UpdateNode(nodeName, *node)
 
 		logger.Info("Logged out")
 	},

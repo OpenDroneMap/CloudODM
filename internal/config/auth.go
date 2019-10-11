@@ -24,8 +24,8 @@ import (
 // if it does, it attempts to login
 // it it doesn't, returns node.Info()
 // on error, it prints a message and exits
-func CheckLogin(nodeName string, username string, password string) *odm.InfoResponse {
-	node, err := User.GetNode(nodeName)
+func (c Configuration) CheckLogin(nodeName string, username string, password string) *odm.InfoResponse {
+	node, err := c.GetNode(nodeName)
 	if err != nil {
 		logger.Error(err)
 	}
@@ -47,7 +47,7 @@ func CheckLogin(nodeName string, username string, password string) *odm.InfoResp
 				logger.Error(err)
 			}
 
-			User.UpdateNode(nodeName, *node)
+			c.UpdateNode(nodeName, *node)
 		} else {
 			logger.Error(err)
 		}

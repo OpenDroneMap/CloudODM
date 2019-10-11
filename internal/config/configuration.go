@@ -33,9 +33,6 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 )
 
-// User contains the user's configuration
-var User Configuration
-
 // NewConfiguration creates a new configuration from a specified file path
 func NewConfiguration(filePath string) Configuration {
 	conf := Configuration{}
@@ -57,7 +54,7 @@ type Configuration struct {
 }
 
 // Initialize the configuration
-func Initialize() {
+func Initialize() Configuration {
 	// Find home directory.
 	home, err := homedir.Dir()
 	if err != nil {
@@ -66,14 +63,15 @@ func Initialize() {
 	}
 
 	cfgPath := filepath.Join(home, ".odm.json")
+	user := Configuration{}
 
 	if exists, _ := fs.FileExists(cfgPath); exists {
 		// Read existing config
-		User = loadFromFile(cfgPath)
+		user = loadFromFile(cfgPath)
 	} else {
 		// Download public nodes, choose a default
 		nodes := GetPublicNodes()
-		User := NewConfiguration(cfgPath)
+		user = NewConfiguration(cfgPath)
 
 		logger.Info("Found " + strconv.Itoa(len(nodes)) + " public nodes")
 
@@ -83,11 +81,13 @@ func Initialize() {
 			randomNode := nodes[rand.Intn(len(nodes))]
 
 			logger.Info("Setting default node to " + randomNode.String())
-			User.AddNode("default", randomNode.Url)
+			user.AddNode("default", randomNode.Url)
 
 			logger.Info("Initialized configuration at " + cfgPath)
 		}
 	}
+
+	return user
 }
 
 func saveToFile(conf Configuration, filePath string) {

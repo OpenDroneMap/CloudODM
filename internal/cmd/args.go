@@ -28,11 +28,11 @@ var argsCmd = &cobra.Command{
 	Aliases: []string{"arguments"},
 	Short:   "View arguments",
 	Run: func(cmd *cobra.Command, args []string) {
-		config.Initialize()
+		user := config.Initialize()
 
-		config.CheckLogin(nodeName, "", "")
+		user.CheckLogin(nodeName, "", "")
 
-		node, err := config.User.GetNode(nodeName)
+		node, err := user.GetNode(nodeName)
 		if err != nil {
 			logger.Error(err)
 		}

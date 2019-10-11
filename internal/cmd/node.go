@@ -27,9 +27,9 @@ var nodeCmd = &cobra.Command{
 	Use:   "node",
 	Short: "Manage processing nodes",
 	Run: func(cmd *cobra.Command, args []string) {
-		config.Initialize()
+		user := config.Initialize()
 
-		for k, n := range config.User.Nodes {
+		for k, n := range user.Nodes {
 			if logger.VerboseFlag {
 				logger.Info(k + " - " + n.String())
 			} else {
@@ -44,9 +44,9 @@ var addCmd = &cobra.Command{
 	Short: "Add a new processing node",
 	Args:  cobra.ExactValidArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		config.Initialize()
+		user := config.Initialize()
 
-		if err := config.User.AddNode(args[0], args[1]); err != nil {
+		if err := user.AddNode(args[0], args[1]); err != nil {
 			logger.Error(err)
 		}
 	},
@@ -58,9 +58,9 @@ var removeCmd = &cobra.Command{
 	Aliases: []string{"delete", "rm", "del"},
 	Args:    cobra.ExactValidArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		config.Initialize()
+		user := config.Initialize()
 
-		if !config.User.RemoveNode(args[0]) {
+		if !user.RemoveNode(args[0]) {
 			logger.Error("Cannot remove node " + args[0] + " (does it exist?)")
 		}
 	},
