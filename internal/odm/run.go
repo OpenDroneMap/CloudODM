@@ -325,7 +325,7 @@ func Run(files []string, options []Option, node Node, outputPath string, paralle
 		logger.Info("")
 
 		for {
-			err := node.TaskDownload(uuid, "all.zip", archiveDst)
+			err := node.TaskDownload(uuid, "all.zip", archiveDst, parallelConnections)
 			if err == nil {
 				break
 			} else {

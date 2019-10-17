@@ -90,6 +90,12 @@ type Node struct {
 	_debugUnauthorized bool
 }
 
+type downloadChunk struct {
+	partNum    int
+	bytesStart int64
+	bytesEnd   int64
+}
+
 func (n Node) String() string {
 	return n.URL
 }
@@ -235,17 +241,23 @@ func (n Node) TaskOutput(uuid string, line int) ([]string, error) {
 	return res, nil
 }
 
-// TaskDownload GET: /task/<uuid>/download/<asset>
-func (n Node) TaskDownload(uuid string, asset string, outputFile string) error {
-	var bar *pb.ProgressBar
+func downloadWorker(chunksToProcess <-chan downloadChunk, chunksProcessed chan<- downloadChunk) {
+	for c := range chunksToProcess {
+		chunksProcessed <- c
+	}
+}
 
+// TaskDownload GET: /task/<uuid>/download/<asset>
+func (n Node) TaskDownload(uuid string, asset string, outputFile string, parallelConnections int) error {
 	out, err := os.Create(outputFile)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
-	resp, err := http.Get(n.URLFor("/task/" + uuid + "/download/" + asset))
+	//resp, err := http.Get(n.URLFor("/task/" + uuid + "/download/" + asset))
+	resp, err := http.Get("https://wln2.fra1.digitaloceanspaces.com/afdc2b64-a484-4624-a428-ed65e9c7a1bf/all.zip")
+
 	if err != nil {
 		return err
 	}
@@ -257,27 +269,45 @@ func (n Node) TaskDownload(uuid string, asset string, outputFile string) error {
 		logger.Debug("Warning: Content-length not set")
 	}
 
+	const ChunkSize int64 = 10.0 * 1024.0 * 1024.0 // MB
+	acceptRanges := strings.ToLower(resp.Header.Get("Accept-Ranges"))
 	showProgress := !logger.QuietFlag && totalBytes > 0
-	if showProgress {
-		bar = pb.New64(totalBytes).SetUnits(pb.U_BYTES).SetRefreshRate(time.Millisecond * 10)
-		bar.Start()
-		bar.Prefix("[" + asset + "]")
-	}
 
-	var writer io.Writer
-	if bar != nil {
-		writer = io.MultiWriter(out, bar)
+	// Parallel?
+	if acceptRanges == "bytes" && totalBytes > 0 && totalBytes > ChunkSize && parallelConnections > 1 {
+		numChunks := int(math.Ceil(float64(totalBytes) / float64(ChunkSize)))
+
+		chunksToProcess := make(chan downloadChunk, numChunks)
+		chunksProcessed := make(chan downloadChunk, numChunks)
+
+		for w := 1; w <= parallelConnections; w++ {
+			go downloadWorker(chunksToProcess, chunksProcessed)
+		}
+
 	} else {
-		writer = out
-	}
+		var bar *pb.ProgressBar
 
-	written, err := io.Copy(writer, resp.Body)
-	if written == 0 {
-		return errors.New("Download returned 0 bytes")
-	}
+		if showProgress {
+			bar = pb.New64(totalBytes).SetUnits(pb.U_BYTES).SetRefreshRate(time.Millisecond * 10)
+			bar.Start()
+			bar.Prefix("[" + asset + "]")
+		}
 
-	if showProgress {
-		bar.Finish()
+		var writer io.Writer
+		if bar != nil {
+			writer = io.MultiWriter(out, bar)
+		} else {
+			writer = out
+		}
+
+		written, err := io.Copy(writer, resp.Body)
+		if written == 0 {
+			return errors.New("Download returned 0 bytes")
+		}
+
+		if showProgress {
+			bar.Finish()
+		}
 	}
 
 	return nil
