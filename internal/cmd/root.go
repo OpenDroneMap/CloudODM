@@ -34,11 +34,12 @@ var outputPath string
 var nodeName string
 var force bool
 var parallelConnections int
+var maxUploadRetries int
 
 var rootCmd = &cobra.Command{
 	Use:     "odm [flags] <images> [<gcp>] [args]",
 	Short:   "A command line tool to process aerial imagery in the cloud",
-	Version: "1.1.0",
+	Version: "1.1.1",
 	Run: func(cmd *cobra.Command, args []string) {
 		user := config.Initialize()
 		if len(args) == 0 {
@@ -92,7 +93,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		odm.Run(inputFiles, parseOptions(options, nodeOptions), *node, outputPath, parallelConnections)
+		odm.Run(inputFiles, parseOptions(options, nodeOptions), *node, outputPath, parallelConnections, maxUploadRetries)
 	},
 
 	TraverseChildren: true,
@@ -117,6 +118,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "./output", "directory where to store processing results")
 	rootCmd.Flags().StringVarP(&nodeName, "node", "n", "default", "Processing node to use")
 	rootCmd.Flags().IntVarP(&parallelConnections, "parallel-connections", "p", 5, "Parallel upload connections. Set to 1 to disable parallel uploads")
+	rootCmd.Flags().IntVarP(&maxUploadRetries, "max-upload-retries", "m", 10, "Max retries before giving up on a file upload when using parallel upload connections.")
 
 	rootCmd.Flags().SetInterspersed(false)
 }
