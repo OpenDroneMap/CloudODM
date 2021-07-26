@@ -144,7 +144,7 @@ func uploadWorker(id int, node Node, uuid string, barPool *pb.Pool, filesToProce
 	}
 }
 
-func chunkedUpload(node Node, files []string, jsonOptions []byte, parallelUploads int) TaskNewResponse {
+func chunkedUpload(node Node, files []string, jsonOptions []byte, parallelUploads int, maxUploadRetries int) TaskNewResponse {
 	var err error
 	var barPool *pb.Pool
 	var mainBar *pb.ProgressBar
@@ -185,17 +185,16 @@ func chunkedUpload(node Node, files []string, jsonOptions []byte, parallelUpload
 	}
 
 	// Wait
-	MaxRetries := 10
 	filesLeft := len(files)
 	for filesLeft > 0 {
 		fur := <-results
 
 		if fur.err != nil {
-			if fur.retries < MaxRetries {
+			if fur.retries < maxUploadRetries {
 				// Retry
 				filesToProcess <- fileUpload{fur.filename, fur.retries + 1}
 			} else {
-				logger.Error(errors.New("Cannot upload " + fur.filename + ", exceeded max retries (" + string(MaxRetries) + ")"))
+				logger.Error(errors.New("Cannot upload " + fur.filename + ", exceeded max retries (" + string(maxUploadRetries) + ")"))
 			}
 		} else {
 			filesLeft--
@@ -223,7 +222,7 @@ func chunkedUpload(node Node, files []string, jsonOptions []byte, parallelUpload
 }
 
 // Run processes a dataset
-func Run(files []string, options []Option, node Node, outputPath string, parallelConnections int) {
+func Run(files []string, options []Option, node Node, outputPath string, parallelConnections int, maxUploadRetries int) {
 	var err error
 
 	// Convert options to JSON
@@ -236,7 +235,7 @@ func Run(files []string, options []Option, node Node, outputPath string, paralle
 	if parallelConnections <= 1 {
 		res = singleUpload(node, files, jsonOptions)
 	} else {
-		res = chunkedUpload(node, files, jsonOptions, parallelConnections)
+		res = chunkedUpload(node, files, jsonOptions, parallelConnections, maxUploadRetries)
 	}
 
 	// Handle error response from API
