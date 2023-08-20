@@ -21,7 +21,7 @@ See `odm --help` for more options.
 
 ## Using GCPs
 
-To include a GCP for additional georeferencing accuracy, simply create a .txt file according to the [Ground Control Points format specification](https://docs.opendronemap.org/gcp.html#gcp-file-format) and place it along with the images.
+To include a GCP for additional georeferencing accuracy, simply create a .txt file according to the [Ground Control Points format specification](https://docs.opendronemap.org/gcp/#gcp-file-format) and place it along with the images.
 
 ## Processing Node Management
 
@@ -62,12 +62,8 @@ Please open an [issue](https://github.com/OpenDroneMap/CloudODM).
 
 There are many ways to contribute back to the project:
 
- - ⭐️ us on GitHub.
- - Help us test the application.
- - Spread the word about OpenDroneMap on social media.
- - Help answer questions on the community [forum](https://community.opendronemap.org)
- - Become a contributor!
-
-
-
-
+- ⭐️ us on GitHub.
+- Help us test the application.
+- Spread the word about OpenDroneMap on social media.
+- Help answer questions on the community [forum](https://community.opendronemap.org)
+- Become a contributor!
