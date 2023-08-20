@@ -21,7 +21,7 @@ See `odm --help` for more options.
 
 ## Using GCPs
 
-To include a GCP for additional georeferencing accuracy, simply create a .txt file according to the [Ground Control Points format specification](https://github.com/mapillary/OpenSfM/blob/main/doc/source/gcp.rst) and place it along with the images.
+To include a GCP for additional georeferencing accuracy, simply create a .txt file according to the [Ground Control Points format specification](https://docs.opendronemap.org/gcp/#gcp-file-format) and place it along with the images.
 
 ## Processing Node Management
 
